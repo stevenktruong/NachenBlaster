@@ -1,0 +1,96 @@
+1. Public Member Functions (arguments are omitted)
+Actor
+	bool isAlive()
+		Checks whether an Actor is dead or alive. This is essential for cleaning up dead Actors.
+		
+	bool checkPos()
+		Checks whether an Actor's position is valid. This is used to check if an Actor is offscreen.
+		
+	virtual bool isCollidable()
+		Checks whether an Actor is collidable (e.g., the NachenBlaster or an Alien). It's not pure virtual since most objects are collidable, but only two of them aren't. This is used to check for collisions between objects in the game.
+		
+	virtual bool isAlien()
+		Similar to the above, but checks if an object is an alien.
+	
+	virtual bool isPlayer()
+		Similar to the above, but checks if an object is the player (the NachenBlaster).
+		
+	virutal bool isProjectile()
+		Similar to the above, but checks if an object is a projectile.
+		
+	StudentWorld* getWorld()
+		Returns a pointer to the StudentWorld that everything is created in. Useful for core functionality.
+		
+	void die()
+		Marks an Actor as dead.
+		
+	virtual void doSomething() = 0
+		What the Actor does in a tick. I made it pure virtual since every Actor will do something different.
+
+DamageableObject
+	double getHealth()
+		Access the health of a DamageableObject. Needed since Aliens and Players can't access the private data member containing its health. It's also used to get the player's health to display on the text at the top of the screen.
+		
+	void sufferDamage()
+		Causes a DamageableObject to take damage. Needed since all collisions with a Projectile are handled by the Projectile itself.
+	
+	void restoreHealth()
+		Similar to the above, but in the opposite direction.
+	
+Blaster
+	double getEnergy()
+		Access the number of cabbage points the Blaster has. Needed to display the information at the top of the screen.
+	
+	double getTorpedoes()
+		Similar to the above, but for torpedoes.
+	
+	void gotGoodie()
+		Figures out which Goodie was picked up, and applies its effect accordingly. This is useful since collisions with Projectiles are handled by Projectiles.
+	
+Alien
+	void setSpeed()
+		Sets the speed of an Alien. Useful since the derived Alien classes can't access the private data member containing the speed. This is needed for the Smoregon's ramming attack.
+	
+	void setDeltaY()
+		Same as the above, but sets the direction the Smoregon moves instead.
+	
+	void setPlan()
+		Same as the above, but sets the flight plan of the Smoregon instead.
+	
+	virtual void specialAction()
+		A special action an Alien can do in addition to firing a turnip. Mainly for the Smoregon class, since it can ram in addition to firing Turnips. This is virtual since only the Smoregon has a special move. By default, it's set to do nothing.
+	
+	virtual void dropGoodie() = 0
+		Drops a goodie. This is pure virtual since each Alien drops Goodies differently.
+	
+	virtual bool fire()
+		This causes an Alien to fire a turnip. It's virtual since the Smallgon and the Smoregon fire in the exact same way, but the Snagglegon fires slightly differently.
+	
+Projectile
+	double getDamage()
+		Returns the amount of damage a Projectile does. Useful since derived Projectiles can't access that private data member holding the damage directly.
+	
+	virtual void cycle()
+		This is the cycle that each Projectile goes through each time getSomething() is called. Its parameters control how the Projectile moves (number of pixels it moves, whether it rotates, and whether an Alien shot it). When this function is called, a Projectile checks for a collision, moves, and then checks for another collision.
+		
+2. Everything seems to be working just fine.
+
+3. It was not specified whether multiple collisions could occur simultaneously in a single tick, so I decided to only allow one collision at a time per object. For example, if the NachenBlaster touched a turnip and an alien on the exact same tick, only one collision would be handled in that tick, which is based on which Actor was created first.
+
+A design decision I took was to give each type of Goodie a global constant int value, which made it very easy to keep track of what Goodie was received. Similarly, I gave Torpedos two global constant ints in order to check whether a Player or an Alien shot it.
+
+4. I'll just cover the following classes: Blaster, Alien, Projectile, Goodie. However, I will remark on the derived classes if there is something special about them. I won't be covering Actor or DamageableObject since by testing their derived classes, I'm effectively testing those base classes.
+
+Blaster
+	This class was the easiest to test since I controlled it directly. Testing was straightforward: pressing each key to make sure that they had the correct functionality, running into aliens to make sure I took damage, and running into Turnips and Torpedos to make sure they did the proper amount of damage. To test Torpedo functionality easily, I gave myself 10 Torpedos at the beginning to make sure that they worked.
+
+Alien
+	I tested the motion of the Alien classes just by running the game and making sure that the Aliens indeed switched directions at the top and bottom of the screen. I also tested firing functionality by setting the probability to 1 to make sure they fire properly. I tested Alien-Blaster collisions by running into the Aliens and making sure that: the scores changed, the Blaster's health changed, and that it was possible to complete the level by running into one. As for Alien-Projectile collisions, I just needed to make sure that the Cabbages and Torpedos I shot did damage (I know damage was done since a sound is played and because it was possible to kill the Aliens with the projectiles).
+	
+	The only remarkable derived class was the Smoregon, which had a ramming attack. I checked to make sure that worked by setting its probability to 1 and running into its line of sight.
+
+Projectile
+	This was fairly easy to test. To test Cabbage, I just had to press space and make sure that the Cabbage percentage at the top decreased for a tick. To test the Projectiles fired by Aliens, I set the probability of their firing to 1, made sure that their animations and sounds were played properly, and also made sure that they did the proper amount of damage to me.
+
+Goodie
+	To test Goodies, I forced Goodies to spawn whenever a Smoregon or a Snagglegon was killed by setting the drop probabilities to 1. I then collected them and made sure that the display text updated properly, and that I actually received the benefits that they were supposed to give.

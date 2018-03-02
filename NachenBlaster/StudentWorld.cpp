@@ -9,7 +9,7 @@
 using namespace std;
 
 using it = std::list<Actor*>::iterator;
-const string sep = "  ";
+const string sep = "  "; // Separator in the text at the top of the screen
 
 GameWorld* createStudentWorld(string assetDir)
 {
@@ -32,9 +32,11 @@ int StudentWorld::init()
     for (int i = 0; i < STARTING_STARS; i++)
         m_actors.push_back(new Star(this, true));
     
+    // The same S1, S2, and S3 as in the spec used to figure out
+    // how to generate Aliens
     m_S1 = 60;
-    m_S2 = 20 + getLevel() * 5;
-    m_S3 = 5 + getLevel() * 10;
+    m_S2 = 20 + getLevel() *  5;
+    m_S3 =  5 + getLevel() * 10;
     
     m_destroyedAliens = 0;
     m_aliensOnScreen = 0;
@@ -44,10 +46,6 @@ int StudentWorld::init()
 
 int StudentWorld::move()
 {
-    // This code is here merely to allow the game to build, run, and terminate after you hit enter.
-    // Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
-    //decLives();
-    
     // Do stuff and clear dead actors other than the player
     for (it i = m_actors.begin(); i != m_actors.end(); i++)
     {
@@ -62,31 +60,38 @@ int StudentWorld::move()
                 i--;
         }
     }
-    
+
     // Check if the player has died
     if (!m_blaster->isAlive())
+    {
+        decLives();
         return GWSTATUS_PLAYER_DIED;
+    }
     
     // Generate stars
     if (randInt(1, 15) == 1)
-    {
         m_actors.push_back(new Star(this));
-    }
     
     // Check if enough aliens are dead
     if (remainingAliens() == 0)
+    {
+        playSound(SOUND_FINISHED_LEVEL);
         return GWSTATUS_FINISHED_LEVEL;
+    }
     
     // Generate aliens
-    if (m_aliensOnScreen < remainingAliens() && m_aliensOnScreen < maxAliens())
+    if (m_aliensOnScreen < remainingAliens() && m_aliensOnScreen < maxAliens()-1)
     {
+        it i = m_actors.begin();
+        i++;
+        
         int num = randInt(1, m_S1 + m_S2 + m_S3);
         if (num <= m_S1)
-            m_actors.push_front(new Smallgon(this));
-        else if (num <= m_S2)
-            m_actors.push_front(new Smallgon(this)); // TODO: Smoregon
+            m_actors.insert(i, new Smallgon(this));
+        else if (num <= m_S1 + m_S2)
+            m_actors.insert(i, new Smoregon(this));
         else
-            m_actors.push_front(new Smallgon(this)); // TODO: Last alien
+            m_actors.insert(i, new Snagglegon(this));
         m_aliensOnScreen++;
     }
     
@@ -107,7 +112,7 @@ int StudentWorld::move()
 
 void StudentWorld::cleanUp()
 {
-    
+    m_blaster = nullptr;
     for (it i = m_actors.begin(); i != m_actors.end(); i++)
         delete *i;
     m_actors.clear();
@@ -116,6 +121,7 @@ void StudentWorld::cleanUp()
 // Checks for a collision between two actors
 bool hasCollided(Actor* a1, Actor* a2)
 {
+    // Euclidean distance as described in the spec
     double distance = sqrt((a1->getX() - a2->getX()) * (a1->getX() - a2->getX()) +
                            (a1->getY() - a2->getY()) * (a1->getY() - a2->getY()));
     if (distance < 0.75 * (a1->getRadius() + a2->getRadius()))
@@ -123,12 +129,13 @@ bool hasCollided(Actor* a1, Actor* a2)
     return false;
 }
 
-// Checks if a collision occurred for a certain actor and puts it in the map
+// Checks if a collision occurred for a certain Actor and puts it in the map
+// Also checks to make sure it doesn't collide with objects of the same type
 Actor* StudentWorld::findCollision(Actor* a)
 {
     for (it i = m_actors.begin(); i != m_actors.end(); i++)
     {
-        // Collidable objects will be at the begin of the list
+        // Collidable objects will be at the begin of the list, so we can end as soon as we hit an uncollidable one
         if (!(*i)->isCollidable())
             return nullptr;
         if (a != *i && hasCollided(a, *i))
@@ -139,8 +146,8 @@ Actor* StudentWorld::findCollision(Actor* a)
 
 void StudentWorld::addActor(Actor* actor)
 {
-    m_actors.push_front(actor);
+    // We place the new Actor just past the Blaster
+    it i = m_actors.begin();
+    i++;
+    m_actors.insert(i, actor);
 }
-
-
-
